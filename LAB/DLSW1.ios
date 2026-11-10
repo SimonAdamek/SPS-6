@@ -1,0 +1,344 @@
+hostname DLSW1
+no ip domain lookup
+
+ip routing
+ipv6 unicast-routing
+fhrp version vrrp v3
+!
+vlan 10
+    name CLIENT_VLAN_25
+!
+vlan 20
+    name CLIENT_VLAN_26
+!
+vlan 30
+    name CLIENT_VLAN_28
+!
+vlan 40
+    name SERVER_VLAN_25
+!
+vlan 50
+    name SERVER_VLAN_26
+!
+vlan 60
+    name SERVER_VLAN_28
+!
+vlan 14
+    name SWITCH_MGMT
+!
+vlan 61
+    name MANAGEMENT
+!
+vlan 998
+    name UNUSED_PORTS
+!
+vlan 999
+    name NATIVE_VLAN
+exit
+!
+spanning-tree mode mst
+!
+spanning-tree mst configuration
+    name AS6_MST
+    revision 1
+    instance 1 vlan 10,20,30,14
+    instance 2 vlan 40,50,60
+exit
+!
+spanning-tree mst 0,2 priority 4096
+spanning-tree mst 1 priority 8192
+!
+vrf definition MANAGEMENT
+    address-family ipv6
+    exit-address-family
+exit
+!
+track 10 interface g0/1 line-protocol
+track 20 interface g0/2 line-protocol
+track 30 list boolean or object 10 object 20
+!
+interface Loopback 0
+    description GLOBAL_LOOPBACK
+
+    ip address 44.6.96.12 255.255.255.255
+    ipv6 address 2001:6666:0:c0::c/128
+    no shutdown
+!
+interface Loopback 1
+    description MANAGEMENT_LOOPBACK
+
+    ipv6 address fdd2:fcc2:bcbc:1::2/128
+    no shutdown
+!
+interface range g0/2 - 3
+    channel-group 1 mode active
+    no shutdown
+!
+interface g1/0
+    description ALSW1-LINK
+
+    switchport trunk encapsulation dot1q 
+    switchport mode trunk
+    switchport trunk allowed vlan 10-60,999
+    switchport trunk native vlan 999
+
+    spanning-tree guard root
+
+    no shutdown
+!
+interface Po1
+    description DLSW2-LINK
+
+    switchport trunk encapsulation dot1q 
+    switchport mode trunk
+    switchport trunk allowed vlan 10-60,999
+    switchport trunk native vlan 999
+    
+    no shutdown
+!
+interface range g0/1, g1/1
+    no switchport
+    no shutdown
+!
+interface g0/1.6
+    description WAN1-ROUTING
+
+    encapsulation dot1Q 6
+
+    ip address 44.6.96.3 255.255.255.254
+    ipv6 address 2001:6666:0:c0::3/127
+    ipv6 address fe80::2 link-local
+
+    ip router isis ISIS4 
+    ipv6 router isis ISIS6 
+
+    isis circuit-type level-1-only
+    isis network point-to-point
+    isis metric 10
+
+    no shutdown
+!
+interface g0/1.61
+    description WAN1-MANAGEMENT
+
+    encapsulation dot1Q 61
+
+    vrf forwarding MANAGEMENT
+
+    ipv6 address fe80::2 link-local
+
+    delay 10
+
+    no shutdown
+!
+interface g1/1.6
+    description WAN2-ROUTING
+
+    encapsulation dot1Q 6
+
+    ip address 44.6.96.7 255.255.255.254
+    !ipv6 address 2001:6666:0:c0::7/127
+    !sipv6 address fe80::2 link-local
+
+    ip router isis ISIS4 
+    ipv6 router isis ISIS6
+
+    isis circuit-type level-1-only
+    isis network point-to-point
+    isis metric 50
+
+    no shutdown 
+!
+interface g1/1.61
+    description WAN2-MANAGEMENT
+
+    encapsulation dot1Q 61
+
+    vrf forwarding MANAGEMENT
+
+    ipv6 address fe80::2 link-local
+
+    delay 100
+    
+    no shutdown
+!
+interface vlan 10
+    description CLIENT_VLAN_25
+    
+    ip address 44.6.0.2 255.255.255.128
+    ipv6 address 2001:6666::2/64
+
+    vrrp 10 address-family ipv4
+        address 44.6.0.1
+        priority 100
+        track 30 decrement 60
+        preempt
+
+    standby version 2
+    standby 1 ipv6 2001:6666::1/64
+    standby 1 priority 100
+    standby 1 track 30 decrement 60
+    standby 1 preempt
+
+    no shutdown
+!
+interface vlan 20
+    description CLIENT_VLAN_26
+
+    ip address 44.6.0.130 255.255.255.192
+    ipv6 address 2001:6666:0:1::2/64
+
+    vrrp 10 address-family ipv4
+        address 44.6.0.129
+        priority 100
+        track 30 decrement 60
+        preempt
+
+    standby version 2
+    standby 1 ipv6 2001:6666:0:1::1/64
+    standby 1 priority 100
+    standby 1 track 30 decrement 60
+    standby 1 preempt
+
+    no shutdown
+!
+interface vlan 30
+    description CLIENT_VLAN_28
+
+    ip address 44.6.0.194 255.255.255.240
+    ipv6 address 2001:6666:0:2::2/64
+
+    vrrp 10 address-family ipv4
+        address 44.6.0.193
+        priority 100
+        track 30 decrement 60
+        preempt
+
+    standby version 2
+    standby 1 ipv6 2001:6666:0:2::1/64
+    standby 1 priority 100
+    standby 1 track 30 decrement 60
+    standby 1 preempt
+
+    no shutdown
+!
+interface vlan 40
+    description SERVER_VLAN_25
+
+    ip address 44.6.64.2 255.255.255.128
+    ipv6 address 2001:6666:0:80::2/64
+
+    vrrp 10 address-family ipv4
+        address 44.6.64.1
+        priority 90
+        track 30 decrement 60
+        preempt
+
+    standby version 2
+    standby 1 ipv6 2001:6666:0:80::1/64
+    standby 1 priority 90
+    standby 1 track 30 decrement 60
+    standby 1 preempt
+    
+    no shutdown
+!
+interface vlan 50
+    description SERVER_VLAN_26
+
+    ip address 44.6.64.130 255.255.255.192
+    ipv6 address 2001:6666:0:81::2/64
+
+    vrrp 10 address-family ipv4
+        address 44.6.64.129
+        priority 90
+        track 30 decrement 60
+        preempt
+
+    standby version 2
+    standby 1 ipv6 2001:6666:0:81::1/64
+    standby 1 priority 90
+    standby 1 track 30 decrement 60
+    standby 1 preempt
+
+    no shutdown
+!
+interface vlan 60
+    description SERVER_VLAN_28
+
+    ip address 44.6.64.194 255.255.255.240
+    ipv6 address 2001:6666:0:82::2/64
+
+    vrrp 10 address-family ipv4
+        address 44.6.64.193
+        priority 90
+        track 30 decrement 60
+        preempt
+
+    standby version 2
+    standby 1 ipv6 2001:6666:0:82::1/64
+    standby 1 priority 90
+    standby 1 track 30 decrement 60
+    standby 1 preempt
+
+    no shutdown
+!
+interface vlan 14
+    description SWITCH_MGMT
+
+    vrf forwarding MANAGEMENT	
+
+    ipv6 address fdd2:fcc2:bcbc::2/64
+
+    vrrp 1 address-family ipv6
+        address fe80::1 primary
+        address fdd2:fcc2:bcbc::1/64
+        priority 100
+        preempt
+    exit-vrrp
+
+    no shutdown
+!
+router isis ISIS4
+    net 49.0004.4406.9612.00
+    is-type level-1
+
+    address-family ipv4 unicast
+        metric-style wide
+
+    passive-interface vlan 10
+    passive-interface vlan 20
+    passive-interface vlan 30
+    passive-interface vlan 40
+    passive-interface vlan 50
+    passive-interface vlan 60
+!
+router isis ISIS6
+    net 49.0006.4406.9612.00
+    is-type level-1
+
+    address-family ipv6 unicast
+        metric-style wide
+
+    passive-interface vlan 10
+    passive-interface vlan 20
+    passive-interface vlan 30
+    passive-interface vlan 40
+    passive-interface vlan 50
+    passive-interface vlan 60
+!
+router eigrp EIGRP-MGMT
+    address-family ipv6 vrf MANAGEMENT autonomous-system 6
+
+    af-interface default
+        passive-interface
+    exit-af-interface
+
+    af-interface g0/1.61
+        no passive-interface
+    exit-af-interface
+
+    af-interface g1/1.61
+        no passive-interface
+    exit-af-interface
+!
+end
